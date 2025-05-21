@@ -57,9 +57,10 @@ def get_file_metadata(file_path):
         return f"Error: {str(e)}"
 
 
-def change_pic_down(button):
+def change_pic_down(event):
     global b_down
     if not b_down:
+        button = event.widget
         activated_img = tk.PhotoImage(file='assets/button_choose_A.png')
         button.configure(image=activated_img)
         button.image = activated_img
@@ -117,10 +118,12 @@ root.config(bg=true_bg)
 
 b_img = tk.PhotoImage(file='assets/button_choose.png')
 b_img_a = tk.PhotoImage(file='assets/button_choose_A.png')
-open_button = tk.Button(root, image=b_img, bg=true_bg, borderwidth=0, relief="solid", activebackground=true_bg, repeatdelay=1, repeatinterval=10)
+open_button = tk.Button(root, image=b_img, bg=true_bg, borderwidth=0, relief="solid", activebackground=true_bg)
 open_button.image = b_img
-open_button.configure(command=lambda: change_pic_down(open_button))
+#open_button.configure(command=lambda: change_pic_down(open_button))
+open_button.bind("<ButtonPress-1>", change_pic_down)
 open_button.bind("<ButtonRelease-1>", change_pic_up)
+
 
 open_button.pack(pady=10)
 
