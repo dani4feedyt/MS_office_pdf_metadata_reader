@@ -1,4 +1,4 @@
-import os
+import os, sys
 from pypdf import PdfReader
 from openpyxl import load_workbook
 from docx import Document
@@ -10,6 +10,14 @@ import re
 
 file_path = None
 
+
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 def get_pdf_metadata(f_path):
     reader = PdfReader(f_path)
@@ -118,13 +126,13 @@ def get_file_metadata(f_path):
 def change_pic_down(event):
     button = event.widget
     if str(button.winfo_name()) == '!button':
-        activated_img = tk.PhotoImage(file='assets/button_choose_A.png')
+        activated_img = tk.PhotoImage(file=resource_path('button_choose_A.png'))
         button.configure(image=activated_img)
         button.image = activated_img
         open_file()
 
     elif str(button.winfo_name()) == '!button2':
-        activated_img = tk.PhotoImage(file='assets/button_extract_A.png')
+        activated_img = tk.PhotoImage(file=resource_path('button_extract_A.png'))
         button.configure(image=activated_img)
         button.image = activated_img
         extract_metadata(file_path)
@@ -134,11 +142,11 @@ def change_pic_up(event):
     button = event.widget
     if str(button.winfo_name()) == '!button':
         button = event.widget
-        deactivated_img = tk.PhotoImage(file='assets/button_choose.png')
+        deactivated_img = tk.PhotoImage(file=resource_path('button_choose.png'))
         button.configure(image=deactivated_img)
         button.image = deactivated_img
     elif str(button.winfo_name()) == '!button2':
-        activated_img = tk.PhotoImage(file='assets/button_extract.png')
+        activated_img = tk.PhotoImage(file=resource_path('button_extract.png'))
         button.configure(image=activated_img)
         button.image = activated_img
 
@@ -156,7 +164,7 @@ def open_file(called=False):
     text_box.config(state='normal')
 
     if called:
-        if not text_box.get(0.0, tk.END).strip("\n").endswith(('.pdf', '.doc', '.docx', '.xls', '.xlsx')):
+        if not text_box.get(0.0, tk.END).strip("\n").endswith(('.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx')):
             text_box_write('Error, unsupported file type. Supported file types: .pdf,.xlsx,.docx', text_box)
             file_path = ''
             return
@@ -235,15 +243,15 @@ root.geometry('700x600')
 root.resizable(False, False)
 true_bg = '#222831'
 root.config(bg=true_bg)
-root.iconbitmap('assets/icon.ico')
+root.iconbitmap(resource_path("icon.ico"))
 
-b_img = tk.PhotoImage(file='assets/button_choose.png')
+b_img = tk.PhotoImage(file=resource_path('button_choose.png'))
 open_button = tk.Button(root, image=b_img, bg=true_bg, borderwidth=0, relief='solid', activebackground=true_bg)
 open_button.image = b_img
 open_button.bind('<ButtonPress-1>', change_pic_down)
 open_button.bind('<ButtonRelease-1>', change_pic_up)
 
-b2_img = tk.PhotoImage(file='assets/button_extract.png')
+b2_img = tk.PhotoImage(file=resource_path('button_extract.png'))
 extract_button = tk.Button(root, image=b2_img, bg=true_bg, borderwidth=0, relief='solid', activebackground=true_bg)
 extract_button.image = b2_img
 extract_button.bind('<ButtonPress-1>', change_pic_down)
