@@ -2,6 +2,7 @@ import os
 from pypdf import PdfReader
 from openpyxl import load_workbook
 from docx import Document
+from pptx import Presentation
 from tkinter import filedialog
 from tkinterdnd2 import DND_FILES, TkinterDnD
 import tkinter as tk
@@ -13,7 +14,6 @@ file_path = None
 def get_pdf_metadata(f_path):
     reader = PdfReader(f_path)
     content = reader.metadata
-    print(content)
     metadata = {
         'FileType': 'PDF document',
         'Created': content.creation_date,
@@ -50,7 +50,6 @@ def get_excel_metadata(f_path):
 def get_word_metadata(f_path):
     doc = Document(f_path)
     props = doc.core_properties
-    print(props)
     metadata = {
         'FileType': 'Word document',
         'Created': props.created,
@@ -65,6 +64,32 @@ def get_word_metadata(f_path):
     return metadata
 
 
+def get_ppoint_metadata(f_path):
+    pres = Presentation(f_path)
+    slide_names = []
+    for slide in pres.slides:
+        try:
+            slide_title = re.sub(r'\s+', ' ', slide.shapes.title.text)
+        except AttributeError:
+            slide_title = '__'
+        slide_names.append(slide_title)
+
+    metadata = {
+        'FileType': 'PowerPoint presentation',
+        'SlideCount': len(pres.slides),
+        'SlideNames': slide_names,
+        'Created': pres.core_properties.created,
+        'Author': pres.core_properties.author,
+        'LastModified': pres.core_properties.modified,
+        'LastModifiedBy': pres.core_properties.last_modified_by,
+        'Version': pres.core_properties.version,
+        'Title': pres.core_properties.title,
+        'Category': pres.core_properties.category,
+        'Tags': pres.core_properties.keywords
+    }
+    return metadata
+
+
 def get_file_metadata(f_path):
     try:
         ext = os.path.splitext(f_path)[1].lower()
@@ -74,6 +99,8 @@ def get_file_metadata(f_path):
             metadata = get_excel_metadata(f_path)
         elif ext in ['.docx', '.doc']:
             metadata = get_word_metadata(f_path)
+        elif ext in ['.pptx', '.ppt']:
+            metadata = get_ppoint_metadata(f_path)
         else:
             return f'Unsupported file type: {ext}'
 
@@ -81,8 +108,6 @@ def get_file_metadata(f_path):
         metadata['FileName'] = os.path.basename(f_path)
         metadata['FilePath'] = f_path
         metadata['FileExtension'] = ext
-
-        print(metadata)
 
         return metadata
 
@@ -136,13 +161,14 @@ def open_file(called=False):
             file_path = ''
             return
 
-        if text_box.get(0.0, tk.END).startswith(("C:", "D:")):
+        if text_box.get(0.0, tk.END).startswith(('C:', 'D:')):
             f_path = text_box.get(0.0, tk.END).strip('\n')
     else:
         text_box.delete(0.0, tk.END)
         f_path = filedialog.askopenfilename(filetypes=[
-            ('Supported Files', '*.xlsx *.xls *.docx *.doc *.pdf'),
+            ('Supported Files', '*.xlsx *.xls *.docx *.doc *.pdf *.pptx *.ppt'),
             ('Excel Files', '*.xlsx *.xls'),
+            ('PowerPoint Files', '*.ppt *.pptx'),
             ('Word Files', '*.docx *.doc'),
             ('PDF Files', '*.pdf')
         ])
@@ -176,6 +202,9 @@ def extract_metadata(f_path):
             if f_ext in ['.xlsx', '.xls']:
                 result += f"Sheet Count: {metadata.get('SheetCount')}\n"
                 result += f"Sheet Names: {metadata.get('SheetNames')}\n"
+            if f_ext in ['.pptx', '.ppt']:
+                result += f"Slide Count: {metadata.get('SlideCount')}\n"
+                result += f"Slide Names: {metadata.get('SlideNames')}\n"
             result += f"Created: {metadata.get('Created')}\n"
             result += f"Author: {metadata.get('Author')}\n"
             result += f"Last Modified: {metadata.get('LastModified')}\n"
@@ -206,7 +235,7 @@ root.geometry('700x600')
 root.resizable(False, False)
 true_bg = '#222831'
 root.config(bg=true_bg)
-root.iconbitmap("assets/icon.ico")
+root.iconbitmap('assets/icon.ico')
 
 b_img = tk.PhotoImage(file='assets/button_choose.png')
 open_button = tk.Button(root, image=b_img, bg=true_bg, borderwidth=0, relief='solid', activebackground=true_bg)
@@ -223,7 +252,7 @@ extract_button.bind('<ButtonRelease-1>', change_pic_up)
 canvas = tk.Canvas(root, width=600, height=200, borderwidth=0, highlightthickness=0)
 text_box = tk.Text(canvas, height=20, width=70, bg='#393E46', fg='white', font=('Consolas', 12), wrap=tk.WORD, state='disabled', borderwidth=0)
 canvas.create_window(0, 0, window=text_box)
-canvas.bind("<Button-1>", root.focus())
+canvas.bind('<Button-1>', root.focus())
 canvas.drop_target_register(DND_FILES)
 canvas.dnd_bind('<<Drop>>', handle_drop)
 
