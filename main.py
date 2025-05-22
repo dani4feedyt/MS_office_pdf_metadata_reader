@@ -9,6 +9,7 @@ import re
 
 file_path = None
 
+
 def get_pdf_metadata(file_path):
     reader = PdfReader(file_path)
     content = reader.metadata
@@ -24,7 +25,6 @@ def get_pdf_metadata(file_path):
         'Tags': content.keywords
     }
     return metadata
-
 
 
 def get_excel_metadata(file_path):
@@ -44,6 +44,7 @@ def get_excel_metadata(file_path):
     }
     return metadata
 
+
 def get_word_metadata(file_path):
     doc = Document(file_path)
     props = doc.core_properties
@@ -59,6 +60,7 @@ def get_word_metadata(file_path):
         'Tags': props.keywords
     }
     return metadata
+
 
 def get_file_metadata(file_path):
     try:
@@ -113,6 +115,13 @@ def change_pic_up(event):
         button.image = activated_img
 
 
+def text_box_write(data, textbox):
+    textbox.config(state='normal')
+    textbox.delete(0.0, tk.END)
+    textbox.insert(tk.END, data)
+    textbox.config(state='disabled')
+
+
 def open_file(called=False):
     global file_path
     local_file_path = ''
@@ -120,8 +129,7 @@ def open_file(called=False):
 
     if called:
         if not text_box.get(0.0, tk.END).strip("\n").endswith(('.pdf', '.doc', '.docx', '.xls', '.xlsx')):
-            text_box.insert(tk.END, 'Error, unsupported file type. Supported file types: .pdf,.xlsx,.docx')
-            text_box.config(state='disabled')
+            text_box_write('Error, unsupported file type. Supported file types: .pdf,.xlsx,.docx', text_box)
             file_path = ''
             return
 
@@ -139,20 +147,17 @@ def open_file(called=False):
     file_path = local_file_path
     text_box.delete(0.0, tk.END)
     if file_path:
-        text_box.insert(tk.END, f'File <{os.path.basename(file_path)}> loaded successfully!')
-        print(file_path)
+        text_box_write(f'File <{os.path.basename(file_path)}> loaded successfully!', text_box)
     else:
-        text_box.insert(tk.END, 'Error, please select a file!')
+        text_box_write('Error, please select a file!', text_box)
     text_box.config(state='disabled')
 
 
 def handle_drop(event):
-    text_box.config(state='normal')
-    text_box.delete(0.0, tk.END)
-    text_box.insert(tk.END, re.sub(r'[{}]', '', f'{event.data}\n'))
-    text_box.config(state='disabled')
+    text_box_write(re.sub(r'[{}]', '', f'{event.data}\n'), text_box)
     open_file(True)
     return event.action
+
 
 def extract_metadata(file_path):
     text_box.config(state='normal')
@@ -182,14 +187,9 @@ def extract_metadata(file_path):
             if line.endswith(' '):
                 line += 'None'
             result_f += f'{line}\n'
-
-        text_box.delete(0.0, tk.END)
-        text_box.insert(tk.END, result_f)
-        text_box.config(state='disabled')
+        text_box_write(result_f, text_box)
     else:
-        text_box.delete(0.0, tk.END)
-        text_box.insert(tk.END, 'Error, filepath corrupted!')
-        text_box.config(state='disabled')
+        text_box_write('Error, filepath corrupted!', text_box)
 
 
 # GUI Setup
