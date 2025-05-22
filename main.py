@@ -3,7 +3,9 @@ from pypdf import PdfReader
 from openpyxl import load_workbook
 from docx import Document
 from tkinter import filedialog
+from tkinterdnd2 import DND_FILES, TkinterDnD
 import tkinter as tk
+import re
 
 file_path = None
 
@@ -111,23 +113,46 @@ def change_pic_up(event):
         button.image = activated_img
 
 
-def open_file():
-    text_box.config(state='normal')
-    text_box.delete(1.0, tk.END)
-    local_file_path = filedialog.askopenfilename(filetypes=[
-        ('Supported Files', '*.xlsx *.docx *.doc *.pdf'),
-        ('Excel Files', '*.xlsx'),
-        ('Word Files', '*.docx *.doc'),
-        ('PDF Files', '*.pdf')
-    ])
+def open_file(called=False):
     global file_path
+    local_file_path = ''
+    text_box.config(state='normal')
+
+    if called:
+        if not text_box.get(0.0, tk.END).strip("\n").endswith(('.pdf', '.doc', '.docx', '.xls', '.xlsx')):
+            text_box.insert(tk.END, 'Error, unsupported file type. Supported file types: .pdf,.xlsx,.docx')
+            text_box.config(state='disabled')
+            file_path = ''
+            return
+
+        if text_box.get(0.0, tk.END).startswith(("C:", "D:")):
+            local_file_path = text_box.get(0.0, tk.END).strip('\n')
+    else:
+        text_box.delete(0.0, tk.END)
+        local_file_path = filedialog.askopenfilename(filetypes=[
+            ('Supported Files', '*.xlsx *.xls *.docx *.doc *.pdf'),
+            ('Excel Files', '*.xlsx *.xls'),
+            ('Word Files', '*.docx *.doc'),
+            ('PDF Files', '*.pdf')
+        ])
+
     file_path = local_file_path
+    text_box.delete(0.0, tk.END)
     if file_path:
         text_box.insert(tk.END, f'File <{os.path.basename(file_path)}> loaded successfully!')
+        print(file_path)
     else:
         text_box.insert(tk.END, 'Error, please select a file!')
     text_box.config(state='disabled')
 
+
+def handle_drop(event):
+    text_box.config(state='normal')
+    text_box.delete(0.0, tk.END)
+    text_box.insert(tk.END, re.sub(r'[{}]', '', f'{event.data}\n'))
+    text_box.config(state='disabled')
+    open_file(True)
+    return event.action
 
 def extract_metadata(file_path):
     text_box.config(state='normal')
@@ -152,20 +177,23 @@ def extract_metadata(file_path):
             result += f"Category: {metadata.get('Category')}\n"
             result += f"Tags: {metadata.get('Tags')}\n"
 
-
         result_f = ''
         for line in result.splitlines():
             if line.endswith(' '):
                 line += 'None'
             result_f += f'{line}\n'
 
-        text_box.delete(1.0, tk.END)
+        text_box.delete(0.0, tk.END)
         text_box.insert(tk.END, result_f)
+        text_box.config(state='disabled')
+    else:
+        text_box.delete(0.0, tk.END)
+        text_box.insert(tk.END, 'Error, filepath corrupted!')
         text_box.config(state='disabled')
 
 
 # GUI Setup
-root = tk.Tk()
+root = TkinterDnD.Tk()
 root.title('Metadata Extraction Tool')
 root.geometry('600x500')
 root.resizable(False, False)
@@ -179,12 +207,16 @@ open_button.image = b_img
 open_button.bind('<ButtonPress-1>', change_pic_down)
 open_button.bind('<ButtonRelease-1>', change_pic_up)
 
-
+canvas = tk.Canvas(root, width=600, height=200, borderwidth=0, highlightthickness=0)
 open_button.pack(pady=10)
+text_box = tk.Text(canvas, height=20, width=70, bg='#393E46', fg='white', font=('Consolas', 10), wrap=tk.WORD, state='disabled')
+canvas.create_window(0, 0, window=text_box)
+canvas.pack()
+canvas.bind("<Button-1>", root.focus())
+text_box.pack()
 
-text_box = tk.Text(root, height=20, width=70, bg='#393E46', fg='white',
-                   font=('Consolas', 10), wrap=tk.WORD)
-text_box.pack(pady=10)
+canvas.drop_target_register(DND_FILES)
+canvas.dnd_bind('<<Drop>>', handle_drop)
 
 b2_img = tk.PhotoImage(file='assets/button_extract.png')
 
