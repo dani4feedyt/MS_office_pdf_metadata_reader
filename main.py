@@ -10,8 +10,8 @@ import re
 file_path = None
 
 
-def get_pdf_metadata(file_path):
-    reader = PdfReader(file_path)
+def get_pdf_metadata(f_path):
+    reader = PdfReader(f_path)
     content = reader.metadata
     print(content)
     metadata = {
@@ -19,17 +19,17 @@ def get_pdf_metadata(file_path):
         'Created': content.creation_date,
         'Author': content.creator,
         'LastModified': content.modification_date,
-        'LastModifiedBy': content.producer_raw,#############
+        'ModifiedIn': content.producer_raw,
         'Title': content.title,
         'Category': content.subject,
-        'Tags': content.keywords
+        'Tags': content.keywords,
+
     }
     return metadata
 
 
-def get_excel_metadata(file_path):
-    workbook = load_workbook(file_path, keep_vba=False)
-    print(workbook.properties)
+def get_excel_metadata(f_path):
+    workbook = load_workbook(f_path, keep_vba=False)
     metadata = {
         'FileType': 'Excel spreadsheet',
         'SheetCount': len(workbook.sheetnames),
@@ -38,15 +38,17 @@ def get_excel_metadata(file_path):
         'Author': workbook.properties.creator,
         'LastModified': workbook.properties.modified,
         'LastModifiedBy': workbook.properties.last_modified_by,
+        'Version': workbook.properties.version,
         'Title': workbook.properties.title,
         'Category': workbook.properties.category,
         'Tags': workbook.properties.keywords
+
     }
     return metadata
 
 
-def get_word_metadata(file_path):
-    doc = Document(file_path)
+def get_word_metadata(f_path):
+    doc = Document(f_path)
     props = doc.core_properties
     print(props)
     metadata = {
@@ -55,6 +57,7 @@ def get_word_metadata(file_path):
         'Author': props.author,
         'LastModified': props.modified,
         'LastModifiedBy': props.last_modified_by,
+        'Version': props.version,
         'Title': props.title,
         'Category': props.category,
         'Tags': props.keywords
@@ -62,21 +65,21 @@ def get_word_metadata(file_path):
     return metadata
 
 
-def get_file_metadata(file_path):
+def get_file_metadata(f_path):
     try:
-        ext = os.path.splitext(file_path)[1].lower()
+        ext = os.path.splitext(f_path)[1].lower()
         if ext == '.pdf':
-            metadata = get_pdf_metadata(file_path)
+            metadata = get_pdf_metadata(f_path)
         elif ext in ['.xlsx', '.xls']:
-            metadata = get_excel_metadata(file_path)
+            metadata = get_excel_metadata(f_path)
         elif ext in ['.docx', '.doc']:
-            metadata = get_word_metadata(file_path)
+            metadata = get_word_metadata(f_path)
         else:
             return f'Unsupported file type: {ext}'
 
-        metadata['FileSize'] = os.stat(file_path).st_size
-        metadata['FileName'] = os.path.basename(file_path)
-        metadata['FilePath'] = file_path
+        metadata['FileSize'] = os.stat(f_path).st_size
+        metadata['FileName'] = os.path.basename(f_path)
+        metadata['FilePath'] = f_path
         metadata['FileExtension'] = ext
 
         print(metadata)
@@ -115,16 +118,16 @@ def change_pic_up(event):
         button.image = activated_img
 
 
-def text_box_write(data, textbox):
+def text_box_write(message, textbox):
     textbox.config(state='normal')
     textbox.delete(0.0, tk.END)
-    textbox.insert(tk.END, data)
+    textbox.insert(tk.END, message)
     textbox.config(state='disabled')
 
 
 def open_file(called=False):
     global file_path
-    local_file_path = ''
+    f_path = ''
     text_box.config(state='normal')
 
     if called:
@@ -134,23 +137,22 @@ def open_file(called=False):
             return
 
         if text_box.get(0.0, tk.END).startswith(("C:", "D:")):
-            local_file_path = text_box.get(0.0, tk.END).strip('\n')
+            f_path = text_box.get(0.0, tk.END).strip('\n')
     else:
         text_box.delete(0.0, tk.END)
-        local_file_path = filedialog.askopenfilename(filetypes=[
+        f_path = filedialog.askopenfilename(filetypes=[
             ('Supported Files', '*.xlsx *.xls *.docx *.doc *.pdf'),
             ('Excel Files', '*.xlsx *.xls'),
             ('Word Files', '*.docx *.doc'),
             ('PDF Files', '*.pdf')
         ])
 
-    file_path = local_file_path
+    file_path = f_path
     text_box.delete(0.0, tk.END)
     if file_path:
         text_box_write(f'File <{os.path.basename(file_path)}> loaded successfully!', text_box)
     else:
         text_box_write('Error, please select a file!', text_box)
-    text_box.config(state='disabled')
 
 
 def handle_drop(event):
@@ -159,11 +161,11 @@ def handle_drop(event):
     return event.action
 
 
-def extract_metadata(file_path):
+def extract_metadata(f_path):
     text_box.config(state='normal')
-    if file_path:
+    if f_path:
         result = 'Error reading file metadata'
-        metadata = get_file_metadata(file_path)
+        metadata = get_file_metadata(f_path)
         f_ext = metadata.get('FileExtension')
         if isinstance(metadata, dict):
             result = f"File Type: {metadata.get('FileType')}\n"
@@ -171,13 +173,17 @@ def extract_metadata(file_path):
             result += f"File Extension: {f_ext}\n"
             result += f"File Size: {metadata.get('FileSize')} bytes\n"
             result += f"File Path: {metadata.get('FilePath')}\n"
-            if f_ext == '.xlsx':
+            if f_ext in ['.xlsx', '.xls']:
                 result += f"Sheet Count: {metadata.get('SheetCount')}\n"
                 result += f"Sheet Names: {metadata.get('SheetNames')}\n"
             result += f"Created: {metadata.get('Created')}\n"
             result += f"Author: {metadata.get('Author')}\n"
             result += f"Last Modified: {metadata.get('LastModified')}\n"
-            result += f"Last Modified By: {metadata.get('LastModifiedBy')}\n"
+            if not f_ext == '.pdf':
+                result += f"Last Modified By: {metadata.get('LastModifiedBy')}\n"
+                result += f"Version: {'1.0' if not metadata.get('Version') else metadata.get('Version')}\n"
+            else:
+                result += f"Modified In: {metadata.get('ModifiedIn')}\n"
             result += f"Title: {metadata.get('Title')}\n"
             result += f"Category: {metadata.get('Category')}\n"
             result += f"Tags: {metadata.get('Tags')}\n"
@@ -188,44 +194,42 @@ def extract_metadata(file_path):
                 line += 'None'
             result_f += f'{line}\n'
         text_box_write(result_f, text_box)
+
     else:
-        text_box_write('Error, filepath corrupted!', text_box)
+        text_box_write('Error, invalid file or corrupted filepath!', text_box)
 
 
-# GUI Setup
 root = TkinterDnD.Tk()
-root.title('Metadata Extraction Tool')
-root.geometry('600x500')
+
+root.title('Dublin Core Metadata Extraction Tool')
+root.geometry('700x600')
 root.resizable(False, False)
 true_bg = '#222831'
 root.config(bg=true_bg)
+root.iconbitmap("assets/icon.ico")
 
 b_img = tk.PhotoImage(file='assets/button_choose.png')
 open_button = tk.Button(root, image=b_img, bg=true_bg, borderwidth=0, relief='solid', activebackground=true_bg)
 open_button.image = b_img
-
 open_button.bind('<ButtonPress-1>', change_pic_down)
 open_button.bind('<ButtonRelease-1>', change_pic_up)
 
-canvas = tk.Canvas(root, width=600, height=200, borderwidth=0, highlightthickness=0)
-open_button.pack(pady=10)
-text_box = tk.Text(canvas, height=20, width=70, bg='#393E46', fg='white', font=('Consolas', 10), wrap=tk.WORD, state='disabled')
-canvas.create_window(0, 0, window=text_box)
-canvas.pack()
-canvas.bind("<Button-1>", root.focus())
-text_box.pack()
+b2_img = tk.PhotoImage(file='assets/button_extract.png')
+extract_button = tk.Button(root, image=b2_img, bg=true_bg, borderwidth=0, relief='solid', activebackground=true_bg)
+extract_button.image = b2_img
+extract_button.bind('<ButtonPress-1>', change_pic_down)
+extract_button.bind('<ButtonRelease-1>', change_pic_up)
 
+canvas = tk.Canvas(root, width=600, height=200, borderwidth=0, highlightthickness=0)
+text_box = tk.Text(canvas, height=20, width=70, bg='#393E46', fg='white', font=('Consolas', 12), wrap=tk.WORD, state='disabled', borderwidth=0)
+canvas.create_window(0, 0, window=text_box)
+canvas.bind("<Button-1>", root.focus())
 canvas.drop_target_register(DND_FILES)
 canvas.dnd_bind('<<Drop>>', handle_drop)
 
-b2_img = tk.PhotoImage(file='assets/button_extract.png')
-
-b_extract = tk.Button(root, image=b2_img, bg=true_bg, borderwidth=0, relief='solid', activebackground=true_bg)
-
-b_extract.bind('<ButtonPress-1>', change_pic_down)
-b_extract.bind('<ButtonRelease-1>', change_pic_up)
-
-b_extract.image = b2_img
-b_extract.pack(pady=10)
+open_button.pack(pady=20)
+canvas.pack()
+text_box.pack()
+extract_button.pack(pady=20)
 
 root.mainloop()
