@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('button_choose.png', '.'), ('button_choose_A.png', '.'), ('button_extract.png', '.'), ('button_extract_A.png', '.'), ('icon.ico', '.')],
+    datas=[('button_choose.png', '.'), ('button_choose_A.png', '.'), ('button_extract.png', '.'), ('button_extract_A.png', '.'), ('button_tojson.png', '.'), ('button_tojson_A.png', '.'), ('icon.ico', '.')],
     hiddenimports=[],
     hookspath=['addhooks'],
     hooksconfig={},
