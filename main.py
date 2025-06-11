@@ -7,9 +7,10 @@ from tkinter import filedialog
 from tkinterdnd2 import DND_FILES, TkinterDnD
 import tkinter as tk
 import re
+import json
 
 file_path = None
-
+result_f = ''
 
 def resource_path(relative_path):
     try:
@@ -196,6 +197,7 @@ def handle_drop(event):
 
 
 def extract_metadata(f_path):
+    global result_f
     text_box.config(state='normal')
     if f_path:
         result = 'Error reading file metadata'
@@ -231,9 +233,29 @@ def extract_metadata(f_path):
                 line += 'None'
             result_f += f'{line}\n'
         text_box_write(result_f, text_box)
+        save_to_json(f_path)
 
     else:
         text_box_write('Error, invalid file or corrupted filepath!', text_box)
+
+
+def save_to_json(f_path):
+    filename = os.path.splitext(os.path.basename(f_path))[0]
+    result_arr = result_f.split('\n')
+    result_dict = {}
+    for line in result_arr:
+        datarow = line.split(": ")
+        if datarow[0]:
+            result_dict.update({datarow[0]: datarow[1]})
+
+    json_object = json.dumps(result_dict, indent=4)
+    file = filedialog.asksaveasfilename(defaultextension=".json",
+                                        filetypes=[("JSON file", '*.json')],
+                                        initialfile=f"{filename}.json")
+
+    if file:
+        with open(file, "w") as f:
+            f.write(json_object)
 
 
 root = TkinterDnD.Tk()
