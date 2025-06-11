@@ -273,7 +273,7 @@ def save_to_json(f_path):
 
 root = TkinterDnD.Tk()
 
-root.title('Dublin Core Metadata Extraction Tool')
+root.title('Dublin Core Metadata Extraction Tool @dani4feedyt')
 root.geometry('700x685')
 root.resizable(False, False)
 true_bg = '#222831'
