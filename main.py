@@ -9,7 +9,7 @@ import tkinter as tk
 import re
 import json
 
-file_path = None
+file_path = ''
 result_f = ''
 
 def resource_path(relative_path):
@@ -131,25 +131,32 @@ def change_pic_down(event):
         button.configure(image=activated_img)
         button.image = activated_img
         open_file()
-
     elif str(button.winfo_name()) == '!button2':
         activated_img = tk.PhotoImage(file=resource_path('button_extract_A.png'))
         button.configure(image=activated_img)
         button.image = activated_img
         extract_metadata(file_path)
+    else:
+        activated_img = tk.PhotoImage(file=resource_path('button_tojson_A.png'))
+        button.configure(image=activated_img)
+        button.image = activated_img
+        save_to_json(file_path)
 
 
 def change_pic_up(event):
     button = event.widget
     if str(button.winfo_name()) == '!button':
-        button = event.widget
         deactivated_img = tk.PhotoImage(file=resource_path('button_choose.png'))
         button.configure(image=deactivated_img)
         button.image = deactivated_img
     elif str(button.winfo_name()) == '!button2':
-        activated_img = tk.PhotoImage(file=resource_path('button_extract.png'))
-        button.configure(image=activated_img)
-        button.image = activated_img
+        deactivated_img = tk.PhotoImage(file=resource_path('button_extract.png'))
+        button.configure(image=deactivated_img)
+        button.image = deactivated_img
+    else:
+        deactivated_img = tk.PhotoImage(file=resource_path('button_tojson.png'))
+        button.configure(image=deactivated_img)
+        button.image = deactivated_img
 
 
 def text_box_write(message, textbox):
@@ -160,8 +167,9 @@ def text_box_write(message, textbox):
 
 
 def open_file(called=False):
-    global file_path
+    global file_path, result_f
     f_path = ''
+    result_f = ''
     text_box.config(state='normal')
 
     if called:
@@ -200,7 +208,7 @@ def extract_metadata(f_path):
     global result_f
     text_box.config(state='normal')
     if f_path:
-        result = 'Error reading file metadata'
+        result = ''
         metadata = get_file_metadata(f_path)
         f_ext = metadata.get('FileExtension')
         if isinstance(metadata, dict):
@@ -233,13 +241,15 @@ def extract_metadata(f_path):
                 line += 'None'
             result_f += f'{line}\n'
         text_box_write(result_f, text_box)
-        save_to_json(f_path)
 
     else:
         text_box_write('Error, invalid file or corrupted filepath!', text_box)
 
 
 def save_to_json(f_path):
+    if not f_path:
+        text_box_write('Error, no file selected!', text_box)
+        return
     filename = os.path.splitext(os.path.basename(f_path))[0]
     result_arr = result_f.split('\n')
     result_dict = {}
@@ -248,20 +258,23 @@ def save_to_json(f_path):
         if datarow[0]:
             result_dict.update({datarow[0]: datarow[1]})
 
-    json_object = json.dumps(result_dict, indent=4)
-    file = filedialog.asksaveasfilename(defaultextension=".json",
-                                        filetypes=[("JSON file", '*.json')],
-                                        initialfile=f"{filename}.json")
-
-    if file:
-        with open(file, "w") as f:
-            f.write(json_object)
+    if result_dict.values():
+        json_object = json.dumps(result_dict, indent=4)
+        file = filedialog.asksaveasfilename(defaultextension=".json",
+                                            filetypes=[("JSON file", '*.json')],
+                                            initialfile=f"{filename}_metadata.json")
+        if file:
+            with open(file, "w") as f:
+                f.write(json_object)
+    else:
+        text_box_write('Error, Extract file first!', text_box)
+        return
 
 
 root = TkinterDnD.Tk()
 
 root.title('Dublin Core Metadata Extraction Tool')
-root.geometry('700x600')
+root.geometry('700x685')
 root.resizable(False, False)
 true_bg = '#222831'
 root.config(bg=true_bg)
@@ -279,6 +292,12 @@ extract_button.image = b2_img
 extract_button.bind('<ButtonPress-1>', change_pic_down)
 extract_button.bind('<ButtonRelease-1>', change_pic_up)
 
+b3_img = tk.PhotoImage(file=resource_path('button_tojson.png'))
+tojson_button = tk.Button(root, image=b3_img, bg=true_bg, borderwidth=0, relief='solid', activebackground=true_bg)
+tojson_button.image = b3_img
+tojson_button.bind('<ButtonPress-1>', change_pic_down)
+tojson_button.bind('<ButtonRelease-1>', change_pic_up)
+
 canvas = tk.Canvas(root, width=600, height=200, borderwidth=0, highlightthickness=0)
 text_box = tk.Text(canvas, height=20, width=70, bg='#393E46', fg='white', font=('Consolas', 12), wrap=tk.WORD, state='disabled', borderwidth=0)
 canvas.create_window(0, 0, window=text_box)
@@ -289,6 +308,7 @@ canvas.dnd_bind('<<Drop>>', handle_drop)
 open_button.pack(pady=20)
 canvas.pack()
 text_box.pack()
-extract_button.pack(pady=20)
+extract_button.pack(side="top", pady=20)
+tojson_button.pack(side="top")
 
 root.mainloop()
